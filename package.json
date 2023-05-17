@@ -1,0 +1,23 @@
+{
+  "name": "racing-games",
+  "version": "1.0.0",
+  "description": "An app for managing racing game companies and platforms",
+  "main": "app.js",
+  "scripts": {
+    "start":"node app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "NODE",
+    "EXPRESS",
+    "MONGOOSE",
+    "MONGODB"
+  ],
+  "author": "Mario-Francis Ezeobele",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "mongoose": "^7.1.0"
+  }
+}
