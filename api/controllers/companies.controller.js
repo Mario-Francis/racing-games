@@ -1,46 +1,28 @@
-const callbackify = require('util').callbackify;
 const constants = require('../../constants');
 const CompanyModel = require('../data/models/companies.model').companyModel;
 const ObjectId = require('mongoose').Types.ObjectId;
 
-const findAllWithCallback = callbackify(function (offset, count) {
-    return CompanyModel.find({}).skip(offset).limit(count).exec();
-});
 
-const findOneWithCallback = callbackify(function (companyId) {
-    return CompanyModel.findById(new ObjectId(companyId)).exec();
-});
-
-const validateCompanyWithCallback = callbackify(function (comapny) {
-    return comapny.validate();
-});
-
-const saveCompanyWithCallback = callbackify(function (company) {
-    return CompanyModel.create(company);
-});
-
-const updateCompanyWithCallback = callbackify(function (id, company) {
-    return CompanyModel.findByIdAndUpdate(new ObjectId(id), company).exec();
-});
-
-const deleteCompanyWithCallback = callbackify(function (id) {
-    return CompanyModel.findByIdAndDelete(new ObjectId(id)).exec();
-});
-
-
-const setResponse = function (response, status, message, data=undefined) {
+const setResponse = function (response, status, message, data = undefined) {
     response.status = status;
     response.message = message;
-    response.data=data;
+    response.data = data;
 };
 
+const sendResponse = function (res, response) {
+    res.status(response.status)
+        .json({ message: response.message, data: response.data });
+}
+
+const createResponse = function(status=constants.statusCode200, message=constants.companyRetrievedMessage){
+    return {
+        status: status,
+        message: message
+    };
+}
 
 const getAll = function (req, res) {
-    const response = {
-        status: constants.statusCode200,
-        message: constants.companiesRetrievedMessage,
-        data:undefined
-    };
+    const response = createResponse();
 
     let offset = constants.zero;
     let count = constants.defaultResultCount;
@@ -48,181 +30,137 @@ const getAll = function (req, res) {
     if (req.query) {
         if (req.query.offset && !isNaN(parseInt(req.query.offset))) {
             offset = parseInt(req.query.offset);
+            if (offset < constants.zero) {
+                setResponse(response, constants.statusCode400, constants.invalidOffsetMessage);
+            }
         }
 
         if (req.query.count && !isNaN(parseInt(req.query.count))) {
             count = parseInt(req.query.count);
+            if (count > constants.maxResultCount || count == constants.zero) {
+                setResponse(response, constants.statusCode400, constants.invalidCountMessage);
+            }
         }
     }
 
-    if (offset < constants.zero) {
-        setResponse(response, constants.statusCode400, constants.invalidOffsetMessage);
-    } else if (count > constants.maxResultCount || count == constants.zero) {
-        setResponse(response, constants.statusCode400, constants.invalidCountMessage);
+
+    if (response.status != constants.statusCode200) {
+        sendResponse(res, response);
     } else {
-        if (response.status != constants.statusCode200) {
-            res.status(response.status).json({ message: response.message });
-        } else {
-            const findAllCallback = function (error, data) {
-                setResponse(response, constants.statusCode200, constants.companiesRetrievedMessage, data);
-                if (error) {
-                    console.log(error);
-                    setResponse(response, constants.statusCode500, error);
-                }
-                res.status(response.status).json({ message: response.message, data: response.data });
-            };
-            findAllWithCallback(offset, count, findAllCallback);
-        }
-
+        CompanyModel.find({}).skip(offset).limit(count).exec()
+            .then((games) => setResponse(response, constants.statusCode200, constants.companiesRetrievedMessage, games))
+            .catch((error) => setResponse(response, constants.statusCode500, error))
+            .finally(() => sendResponse(res, response));
     }
-
 };
 
+const checkIfCompanyExist = function(response, company){
+    return new Promise((resolve, reject)=>{
+        if(!company){
+            setResponse(response, constants.statusCode404, constants.companyNotFoundMessage);
+            reject(response);
+        }else{
+            resolve(company);
+        }
+    });
+}
+
+const handleError = function(error, response){
+    if(!error.status){
+        if(error.message){
+            setResponse(response, constants.statusCode400, error.message);
+        }else{
+            setResponse(response, constants.statusCode500, error);
+        }
+    }
+}
+
 const getOne = function (req, res) {
-    const response = {
-        status: constants.statusCode200,
-        message: constants.companyRetrievedMessage,
-        data:undefined
-    };
+    const response = createResponse();
 
     let companyId = req.params.companyId;
     if (!companyId || !ObjectId.isValid(companyId)) {
         setResponse(response, constants.statusCode400, constants.invalidCompanyIdMessage);
+        sendResponse(res, response);
     } else {
-        const findOneCallback = function (error, data) {
-            if (error) {
-                console.log(error);
-                setResponse(response, constants.statusCode500, error);
-            } else {
-                if (data) {
-                    setResponse(response, constants.statusCode200, constants.companyRetrievedMessage, data);
-                } else {
-                    setResponse(response, constants.statusCode404, constants.companyNotFoundMessage);
-                }
-            }
-            res.status(response.status).json({ message: response.message, data: response.data });
-        };
-        findOneWithCallback(companyId, findOneCallback);
+        CompanyModel.findById(new ObjectId(companyId)).exec()
+        .then((company)=> checkIfCompanyExist(response, company))
+        .then((company)=> setResponse(response, constants.statusCode200, constants.companyRetrievedMessage, company))
+        .catch((error)=> handleError(error, response))
+        .finally(()=> sendResponse(res, response));
     }
 };
 
-const create = function (req, res) {
-    const response = {
-        status: constants.statusCode200,
-        message: constants.companyRetrievedMessage
-    };
+const createOne = function (req, res) {
+    const response = createResponse();
     let body = req.body;
 
     let company = new CompanyModel(body);
-    const saveCompanyCallback = function (error2, data) {
-        setResponse(response, constants.statusCode200, constants.companyCreatedMessage);
-        if (error2) {
-            console.log(error2);
-            setResponse(response, constants.statusCode500, error2);
-        } 
-        res.status(response.status).json({ message: response.message, data: response.data });
-    };
-    const validateCompanyCallback = function (error, data) {
-        if (error) {
-            console.log(error);
-            res.status(constants.statusCode400)
-                .json({ message: error.message });
-        } else {
-            saveCompanyWithCallback(body, saveCompanyCallback);
-        }
-    };
-    validateCompanyWithCallback(company, validateCompanyCallback);
+    company.validate()
+    .then(()=> CompanyModel.create(company))
+    .then((data)=> setResponse(response, constants.statusCode200, constants.companyCreatedMessage))
+    .catch((error)=> handleError(error, response))
+    .finally(()=> sendResponse(res, response));
 };
 
+const checkValidateCompany = function(company, validate){
+    return new Promise((resolve, reject)=>{
+        if(validate){
+            resolve(company.validate());
+        }else{
+            resolve();
+        }
+    });
+};
 
-const updateOneHelper = function (req, res, validateCompany, callback) {
-    const response = {
-        status: constants.statusCode200,
-        message: constants.companyUpdatedMessage
-    };
+const updateOneHelper = function (req, res, validateCompany) {
+    const response = createResponse();
 
     let companyId = req.params.companyId;
     if (!companyId || !ObjectId.isValid(companyId)) {
         setResponse(response, constants.statusCode400, constants.invalidCompanyIdMessage);
+        sendResponse(res, response);
     } else {
         let body = req.body;
         let company = new CompanyModel(body);
-        const updateCompanyCallback = function (error2, data) {
-            if (error2) {
-                console.log(error2);
-                setResponse(response, constants.statusCode500, constants.error2);
-            } else {
-                if (data) {
-                    setResponse(response, constants.statusCode200, constants.companyUpdatedMessage);
-                } else {
-                    setResponse(response, constants.statusCode404, constants.companyNotFoundMessage);
-                }
-            }
-            callback(response);
-        };
-
-        const validateCompanyCallback = function (error, data) {
-            if (error) {
-                console.log(error);
-                setResponse(response, constants.statusCode400, error.message);
-                callback(response);
-            } else {
-                updateCompanyWithCallback(companyId, body, updateCompanyCallback);
-            }
-        };
-
-        if (validateCompany) {
-            validateCompanyWithCallback(company, validateCompanyCallback);
-        } else {
-            updateCompanyWithCallback(companyId, body, updateCompanyCallback);
-        }
+        
+        checkValidateCompany(company, validateCompany)
+        .then(()=> CompanyModel.findByIdAndUpdate(new ObjectId(companyId), body).exec())
+        .then((data)=> checkIfCompanyExist(response, data))
+        .then(()=> setResponse(response, constants.statusCode200, constants.companyUpdatedMessage))
+        .catch((error)=> handleError(error, response))
+        .finally(()=> sendResponse(res, response));
     }
-
-
-}
+};
 
 const fullUpdateOne = function (req, res) {
-    const updateCallback = function (response) {
-        res.status(response.status).json({ message: response.message });
-    };
-    updateOneHelper(req, res, true, updateCallback);
+    updateOneHelper(req, res, true);
 };
 
 const partialUpdateOne = function (req, res) {
-    const updateCallback = function (response) {
-        res.status(response.status).json({ message: response.message });
-    };
-    updateOneHelper(req, res, false, updateCallback);
-}
+    updateOneHelper(req, res, false);
+};
 
 const deleteOne = function (req, res) {
-    const response = {
-        status: constants.statusCode200,
-        message: constants.companyRetrievedMessage
-    };
+    const response = createResponse();
 
     let companyId = req.params.companyId;
     if (!companyId || !ObjectId.isValid(companyId)) {
         setResponse(response, constants.statusCode400, constants.invalidCompanyIdMessage);
+        sendResponse(res, response);
     } else {
-        const deleteCompanyCallback = function (error, data) {
-            setResponse(response, constants.statusCode200, constants.companyDeletedMessage);
-            if (error) {
-                console.log(error);
-                setResponse(response, constants.statusCode500, error);
-            } else if(!data){
-                setResponse(response, constants.statusCode404, constants.companyNotFoundMessage);
-            }
-            res.status(response.status).json({ message: response.message});
-        };
-        deleteCompanyWithCallback(companyId, deleteCompanyCallback);
+        CompanyModel.findByIdAndDelete(new ObjectId(companyId)).exec()
+        .then((company)=> checkIfCompanyExist(response, company))
+        .then((company)=> setResponse(response, constants.statusCode200, constants.companyDeletedMessage))
+        .catch((error)=> handleError(error, response))
+        .finally(()=> sendResponse(res, response));
     }
 };
 
 module.exports = {
     getAll: getAll,
     getOne: getOne,
-    createOne: create,
+    createOne: createOne,
     updateOne: fullUpdateOne,
     patchOne: partialUpdateOne,
     deleteOne: deleteOne

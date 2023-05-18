@@ -20,7 +20,8 @@ module.exports = {
     gamesRetrievedMessage:'Games retrieved successfully',
     gameRetrievedMessage:'Game retrieved successfully',
     invalidGameIdMessage:'Invalid game id',
-    gameNotFoundMessage:'Game not found'
+    gameNotFoundMessage:'Game not found',
+    games:'games'
 
 
 };
