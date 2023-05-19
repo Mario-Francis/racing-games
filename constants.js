@@ -19,6 +19,9 @@ module.exports = {
 
     gamesRetrievedMessage:'Games retrieved successfully',
     gameRetrievedMessage:'Game retrieved successfully',
+    gameCreatedMessage:'Game created successfully',
+    gameUpdatedMessage:'Game updated successfully',
+    gameDeletedMessage:'Game deleted successfully',
     invalidGameIdMessage:'Invalid game id',
     gameNotFoundMessage:'Game not found',
     games:'games'
