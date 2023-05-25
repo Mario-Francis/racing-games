@@ -3,8 +3,10 @@ module.exports = {
     maxResultCount:5,
     zero:0,
     statusCode200:200,
+    statusCode201:201,
     statusCode400:400,
     statusCode404:404,
+    statusCode401:401,
     statusCode500:500,
     invalidOffsetMessage:'Invalid offset specified',
     invalidCountMessage:'Invalid count specified',
@@ -24,7 +26,11 @@ module.exports = {
     gameDeletedMessage:'Game deleted successfully',
     invalidGameIdMessage:'Invalid game id',
     gameNotFoundMessage:'Game not found',
-    games:'games'
+    games:'games',
+
+    userCreatedMessage:'User registered successfully',
+    invalidCredentialsMessage:'Invalid username or password',
+    loginSuccessMessage:'Login successful'
 
 
 };

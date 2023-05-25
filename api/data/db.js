@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const constants = require('../../constants');
 require('./models/games.model');
 require('./models/companies.model');
+require('./models/users.model');
 
 const callbackify = require('util').callbackify;
 
