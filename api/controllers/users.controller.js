@@ -106,7 +106,7 @@ const generateToken = function(user){
         username:user.username
     };
     return new Promise((resolve, reject)=>{
-        signTokenWithPromise(payload, process.env.TOKEN_SECRET)
+        signTokenWithPromise(payload, process.env.TOKEN_SECRET, {expiresIn:parseInt(process.env.TOKEN_EXPIRY_TIME)})
         .then((token)=> resolve({user,token}))
         .catch((error)=> reject(error));
     });

@@ -30,7 +30,11 @@ module.exports = {
 
     userCreatedMessage:'User registered successfully',
     invalidCredentialsMessage:'Invalid username or password',
-    loginSuccessMessage:'Login successful'
+    loginSuccessMessage:'Login successful',
+    unauthorizedMessage:'Unauthorized',
+    tokenExpiredMessage:'Token expired',
+
+    oneThousand:1000
 
 
 };
